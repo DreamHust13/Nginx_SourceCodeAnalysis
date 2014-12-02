@@ -1,14 +1,19 @@
-#!/bin/sh
+﻿#!/bin/sh
 
 # Copyright (C) Igor Sysoev
 # Copyright (C) Nginx, Inc.
-
+#configure脚本本身的详细分析，详见<深入理解Nginx> P19
 
 LC_ALL=C
 export LC_ALL
 
+#auto/options脚本处理configure命令的参数
 . auto/options
+
+#auto/init脚本初始化后续将产生的文件路径
 . auto/init
+
+#auto/sources脚本将分析Nginx的源码结构，这样才能构造后续的Makefile文件
 . auto/sources
 
 test -d $NGX_OBJS || mkdir $NGX_OBJS
