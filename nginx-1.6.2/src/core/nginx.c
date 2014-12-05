@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -197,7 +197,7 @@ static char        *ngx_signal;
 
 static char **ngx_os_environ;
 
-
+//主函数
 int ngx_cdecl
 main(int argc, char *const *argv)
 {
@@ -404,7 +404,22 @@ main(int argc, char *const *argv)
         ngx_single_process_cycle(cycle);
 
     } else {
+		//nginx多进程模型的入口
         ngx_master_process_cycle(cycle);
+		/***********Nginx多进程模型的流程***********	
+		
+			Nginx多进程模型的入口为主进程的ngx_master_process_cycle()函数
+		(在\src\os\unix\Ngx_process_cycle.c中)，在该函数做完信号处理设置等
+		之后就会调用一个名为ngx_start_worker_process()的函数
+		(在\src\os\unix\Ngx_process_cycle.c中)用于fork()产生出子进程(子进程
+		的数目通过函数调用的第二个实参指定)，子进程作为一个新的实体开始充当
+		工作进程的角色执行ngx_worker_process_cycle()函数，该函数主体为一个
+		无限for(;;)循环，持续不断地处理客户端的服务请求，而主进程继续执行
+		ngx_master_process_cycle()函数，也就是作为监控进程执行主体for(;;)循环，
+		这自然也是一个无限循环，直到进程终止才退出。监控进程和每个工作进程各有
+		一个无限for(;;)循环，以便进程持续的等待和处理自己负责的事务，直到进程退出。
+		
+		***********Nginx多进程模型的流程***********/
     }
 
     return 0;
