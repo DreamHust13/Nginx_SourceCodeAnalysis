@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -82,7 +82,7 @@ ngx_signal_t  signals[] = {
     { 0, NULL, "", NULL }
 };
 
-
+//生成新的工作进程
 ngx_pid_t
 ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
     char *name, ngx_int_t respawn)
@@ -113,7 +113,15 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
     if (respawn != NGX_PROCESS_DETACHED) {
 
         /* Solaris 9 still has no AF_LOCAL */
-
+		/***********Nginx进程间通信***********
+			Nginx进程间通信解决方案：采用socketpair()函数创造一对未命名的UNIX域套接字
+		来进行Linux下具有亲缘关系的进程之间的双向通信。在该函数进行fork()之前，先调用
+		socketpair()创建一对socket描述符存放在变量ngx_processes[s].channel内(其中s标志
+		在ngx_processes数组内第一个可用元素的下标，如最开始产生第一个工作进程时，可用
+		元素的下标s为0)，而在fork()之后，由于子进程继承了父进程的资源，那么父子进程就
+		都有了这一对socket描述符，而Nginx将channel[0]给父进程使用，channel[1]给子进程
+		使用，这样分别错开地使用不同socket描述符，即可实现父子进程之间的双向通信。
+		***********Nginx进程间通信***********/
         if (socketpair(AF_UNIX, SOCK_STREAM, 0, ngx_processes[s].channel) == -1)
         {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
