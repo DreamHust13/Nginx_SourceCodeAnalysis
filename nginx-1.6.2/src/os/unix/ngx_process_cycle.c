@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -141,7 +141,19 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     delay = 0;
     sigio = 0;
     live = 1;
-
+		/***********Nginx监控进程***********	
+			监控进程的无限for(;;)循环内有一个关键的sigsuspend()函数调用，该函数的调用
+		使得监控进程的大部分时间都处于挂起等待状态，直到监控进程接收到信号为止。当监控
+		进程接收到信号时，信号处理函数ngx_signal_handler()就会被执行。[信号处理函数
+		一般都要求足够坚定，故在该函数内执行的动作主要也就是根据当前信号值对相应的旗标
+		变量做设置，而实际的处理逻辑必须放在主题代码里来执行]。for(;;)循环接下来的代码
+		就是判断有哪些旗标变量被设置而需要处理，比如ngx_rep(有子进程退出？)、ngx_quit
+		或ngx_terminate(进程要退出或终止？二者都表示结束Nginx，但ngx_quit结束更优雅，
+		会让Nginx监控进程做一些清理工作且等待子进程也完全清理并退出之后才终止；而
+		ngx_terminate更为粗暴，不过它通过SIGKILL信号能保证在一段时间后必定被结束掉)、
+		ngx_reconfigure(重新加载配置)等。当所有信号都处理完时，又被挂起在函数
+		sigsuspend()调用处继续等待新的信号，如此反复，构成监控进程的主要执行体。
+		***********Nginx监控进程***********/
     for ( ;; ) {
         if (delay) {
             if (ngx_sigalrm) {
