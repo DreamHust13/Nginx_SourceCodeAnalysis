@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -391,6 +391,12 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     /* create shared memory */
 
+	/*
+	共享内存的真正创建是在配置文件全部解析完后，所有代表共享内存的结构体
+	ngx_shm_zone_t变量以链表的形式挂接在全局变量cf->cycle->shared_memory下,
+	Nginx此时遍历该链表并逐个进行实际创建，即分配内存、管理机制(如锁、slab)
+	初始化等。
+	*/
     part = &cycle->shared_memory.part;
     shm_zone = part->elts;
 
@@ -463,6 +469,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
             goto failed;
         }
 
+		//在共享内存分配好后进行的初始化调用
         if (ngx_init_zone_pool(cycle, &shm_zone[i]) != NGX_OK) {
             goto failed;
         }
@@ -848,7 +855,7 @@ ngx_destroy_cycle_pools(ngx_conf_t *conf)
     ngx_destroy_pool(conf->pool);
 }
 
-
+//在共享内存分配好后进行的初始化调用
 static ngx_int_t
 ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
 {
@@ -892,6 +899,7 @@ ngx_init_zone_pool(ngx_cycle_t *cycle, ngx_shm_zone_t *zn)
         return NGX_ERROR;
     }
 
+	//slab初始化函数
     ngx_slab_init(sp);
 
     return NGX_OK;
@@ -1172,9 +1180,20 @@ ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name, size_t size, void *tag)
     ngx_shm_zone_t   *shm_zone;
     ngx_list_part_t  *part;
 
+	//Nginx使用的所有共享内存都以list链表的形式组织在全局变量cf->cycle->shared_memory下
     part = &cf->cycle->shared_memory.part;
     shm_zone = part->elts;
-
+	
+	/*在创建新的共享内存之前，会先对该链表进行遍历查找以及冲突检测，对于已经
+	  存在且不存在冲突的共享内存可直接返回引用。对不存在的，创建对应的
+	  ngx_shm_zone_t结构体变量并加入到全局链表内(ngx_list_push())。
+	*/
+	/*
+	共享内存的真正创建是在配置文件全部解析完后，所有代表共享内存的结构体
+	ngx_shm_zone_t变量以链表的形式挂接在全局变量cf->cycle->shared_memory下,
+	Nginx此时遍历该链表并逐个进行实际创建，即分配内存、管理机制(如锁、slab)
+	初始化等。在该文件的函数ngx_init_cycle()中。
+	*/
     for (i = 0; /* void */ ; i++) {
 
         if (i >= part->nelts) {
