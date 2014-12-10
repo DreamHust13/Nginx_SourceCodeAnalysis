@@ -364,7 +364,7 @@ main(int argc, char *const *argv)
     }
 
 #if !(NGX_WIN32)
-
+	//ngx_init_signals()完成信号的设置工作
     if (ngx_init_signals(cycle->log) != NGX_OK) {
         return 1;
     }

@@ -37,6 +37,7 @@ ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
 
 
 ngx_signal_t  signals[] = {
+	//等价于{1,"SIGHUP","reload",ngx_signal_handler}
     { ngx_signal_value(NGX_RECONFIGURE_SIGNAL),
       "SIG" ngx_value(NGX_RECONFIGURE_SIGNAL),
       "reload",
@@ -287,7 +288,7 @@ ngx_execute_proc(ngx_cycle_t *cycle, void *data)
     exit(1);
 }
 
-
+//ngx_init_signals()完成信号的设置工作
 ngx_int_t
 ngx_init_signals(ngx_log_t *log)
 {
