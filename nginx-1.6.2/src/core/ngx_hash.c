@@ -1,4 +1,4 @@
-﻿
+
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -302,7 +302,11 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
 	/*
 		获取Hash结构最终节点数目：
 		逐步增加Hash节点数目(则对应的bucket数目同步增加)，然后把所有的实际元素往这些
-	bucket里添放，此时有可能发生冲突，但
+	bucket里添放，此时有可能发生冲突，但只有冲突的次数可以容忍，即任意一个bucket都还
+	没满，那么就继续填，如果发生有任何一个bucket满溢了(即if (test[key] > (u_short) bucket_size))
+	为真，test[key]记录了key这个hash节点所对应的bucket内存储实际元素后的总大小，如果它大于一个bucket
+	可用的最大空间bucket_size，自然也就是满溢了),那么久必须增加Hash节点、增加bucket。如果所有实际
+	元素都填完后没有发生满溢，那么当前的size值就是最终的节点数目值。
 	*/
     for (size = start; size <= hinit->max_size; size++) {
 
