@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -51,6 +51,8 @@
 
 #if !(NGX_WIN32)
 
+//##是一个连接符号，用于把参数连在一起   
+//#是“字符串化”的意思。出现在宏定义中的#是把跟在后面的参数转换成一个字符串
 #define ngx_signal_helper(n)     SIG##n
 #define ngx_signal_value(n)      ngx_signal_helper(n)
 
@@ -76,6 +78,8 @@
 #endif
 
 typedef intptr_t        ngx_int_t;
+//intptr_t和uintptr_t类型用来存放指针地址。它们提供了一种可移植且安全的方法声明指针，而且和系统中使用的指针长度相同，对于把指针转化成整数形式来说很有用。uintptr_t是intptr_t 的无符号版本。
+//C99 标准定义了 intptr_t 和 uintptr_t 类型给一个可以持有一个指针值的整型变量. 
 typedef uintptr_t       ngx_uint_t;
 typedef intptr_t        ngx_flag_t;
 
