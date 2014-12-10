@@ -19,6 +19,10 @@ ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
     ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0, "hf:\"%*s\"", len, name);
 #endif
 
+	/*对创建好的Hash数据结构，唯一的可执行操作就是查找：
+		先对key值取模得到对应的Hash节点，然后在该Hash节点所对应的bucket里逐个(实现类似数组，结束
+		有哨兵保证)对比元素名称来找到唯一的那个实际元素，最后返回其value值。否则，返回NULL，表示没找到。
+	*/
     elt = hash->buckets[key % hash->size];
 
     if (elt == NULL) {
@@ -347,6 +351,11 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
 
 found:
 
+	/*找到需创建的Hash节点数目值，之后就是实际的Hash结构创建过程。其内存的使用有技巧：
+      所有buckets所占的内存空间是连接在一起的，并且是按需分配(即某个bucket需多少内存存储实际元素
+	就分配多少内存,当然，处理额外的对齐处理)
+		对创建好的Nginx hash数据结构，唯一的可执行操作就是查找。
+	*/
     for (i = 0; i < size; i++) {
         test[i] = sizeof(void *);
     }
