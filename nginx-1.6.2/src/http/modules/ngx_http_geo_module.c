@@ -507,6 +507,7 @@ ngx_http_geo_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         ngx_destroy_pool(pool);
 
     } else {
+		//Nginx提供的基树仅被geo模块使用，这个模块使用基树来处理IP地址的匹配查找
         if (ctx.tree == NULL) {
             ctx.tree = ngx_radix_tree_create(cf->pool, -1);
             if (ctx.tree == NULL) {

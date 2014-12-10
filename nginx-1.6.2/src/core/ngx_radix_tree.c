@@ -11,13 +11,14 @@
 
 static ngx_radix_node_t *ngx_radix_alloc(ngx_radix_tree_t *tree);
 
-
+//创建基树的初始函数
 ngx_radix_tree_t *
 ngx_radix_tree_create(ngx_pool_t *pool, ngx_int_t preallocate)
 {
     uint32_t           key, mask, inc;
     ngx_radix_tree_t  *tree;
 
+	//首先分配基树描述结构ngx_radix_tree_t的内存
     tree = ngx_palloc(pool, sizeof(ngx_radix_tree_t));
     if (tree == NULL) {
         return NULL;
@@ -28,6 +29,7 @@ ngx_radix_tree_create(ngx_pool_t *pool, ngx_int_t preallocate)
     tree->start = NULL;
     tree->size = 0;
 
+	//然后创建一个只有根节点的基树
     tree->root = ngx_radix_alloc(tree);
     if (tree->root == NULL) {
         return NULL;
@@ -38,6 +40,24 @@ ngx_radix_tree_create(ngx_pool_t *pool, ngx_int_t preallocate)
     tree->root->parent = NULL;
     tree->root->value = NGX_RADIX_NO_VALUE;
 
+	/*
+		在ngx_radix_tree结构体中，除root以外的几个字段都是为了对该基树所使用的内存进行管理所做的设计，free
+	字段下挂载的是当前空闲的树节点(即从树里删除出来而没被使用的废弃节点，这个节点所占内存空间既没有返还给内存池，
+	也没有返还给系统)。这些节点以单链表的形式组织起来(把节点描述结构ngx_radix_node_t的right字段当链表的next
+	字段使用)，所以在节点申请函数ngx_radix_alloc()里，会先去这个空闲链表查找是否有废弃节点可用。如果有，就
+	直接取链头节点返回;否则就要申请(如果之前没申请过内存页或者上次剩余内存不足一个基树节点)一页内存(ngx_pagesize
+	大小，有对齐处理)，然后从中分出一个待分配的基树节点，剩下内存的起始地址和大小分别在tree->start和tree->size
+	字段里，以便下次分配基树节点是，可以从剩余内存里直接获取。注：基树相关代码中没有释放页内存并不会导致内存泄露，
+	因为这些基树内存的最终回收会在Nginx内存池里处理。
+	*/
+	
+	/*
+		创建完只有根节点的基树后，还会根据参数preallocate进行树节点的创建。如果该值指定为0，表示
+		不需预创建而直接返回;若preallocate为正数n，则表示要预创建的基树(预创建的是一颗满二叉树)
+		深度(假定根节点层次为0，树深度定义为最大的叶节点层次，即若preallocate为2，接下来一共创建
+		6个树节点);若preallocate为-1，则表示要选择一个默认深度，根据平台的不同而不同。若为其他
+		负数，那就是一个异常输入，需小心（若为-2，几乎创建无数多个树节点而必定导致内存不足而失败）。
+	*/
     if (preallocate == 0) {
         return tree;
     }
@@ -78,6 +98,21 @@ ngx_radix_tree_create(ngx_pool_t *pool, ngx_int_t preallocate)
         }
     }
 
+	/*
+		背景知识：
+		1、Nginx提供的基树仅被geo模块使用，这个模块使用基树来处理IP地址的匹配查找
+		2、在nginx-1.2.0版本内，geo模块仅支持IPV4(1.6.2不清楚)，这意味着这颗基树支持的最大
+			深度为32就足够了，所以这里的变量key、mask、inc都为uint32_t类型
+		3、key与节点的对应是从高位向低位逐步匹配的，因为geo模块里真正使用的IP网络地址，如
+			192.168.0.0/16，它们前面bit位才是有效区分位，若从后往前位匹配，会有大量bit 0，导致
+			基本任何一个IP网络地址插入到基树都会达到32层。
+		4、ngx_radix32tree_insert()和ngx_radix32tree_delete()函数中，有参数key的同时有参数
+			mask的原因：与Nginx内基树的应用有关。因为基树只被geo模块使用，而geo模块存储的IP网络
+			地址大多只有前面bit位有效，如192.168.0.0/16，只要到16位(即16层)即可，否则的话要到32
+			位而白白浪费内存，更糟糕的是无法区分192.168.0.0/16和192.168.0.0/32，而加了参数mask
+			就可解决此问题。
+	*/
+	//树节点的创建
     mask = 0;
     inc = 0x80000000;
 
@@ -460,6 +495,7 @@ ngx_radix128tree_find(ngx_radix_tree_t *tree, u_char *key)
 #endif
 
 
+//基树节点申请函数
 static ngx_radix_node_t *
 ngx_radix_alloc(ngx_radix_tree_t *tree)
 {
