@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -1466,6 +1466,7 @@ ngx_http_optimize_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
 }
 
 
+//Nginx对虚拟主机的管理使用到了Hash数据结构
 static ngx_int_t
 ngx_http_server_names(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
     ngx_http_conf_addr_t *addr)
@@ -1539,9 +1540,12 @@ ngx_http_server_names(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
     hash.pool = cf->pool;
 
     if (ha.keys.nelts) {
+		//生成的Hash数据结构会存放在addr->hash内，从而后面才可以引用并使用到这个Hash
         hash.hash = &addr->hash;
         hash.temp_pool = NULL;
 
+		//调用初始函数ngx_hash_init()开始创建对应的Hash数据结构
+		//第二和第三个参数指示了创建这个Hash的原始来源数据(亦称之为实际元素)
         if (ngx_hash_init(&hash, ha.keys.elts, ha.keys.nelts) != NGX_OK) {
             goto failed;
         }

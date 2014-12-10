@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -248,6 +248,7 @@ ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key, u_char *name,
 #define NGX_HASH_ELT_SIZE(name)                                               \
     (sizeof(void *) + ngx_align((name)->key.len + 2, sizeof(void *)))
 
+	//初始化Hash数据结构
 ngx_int_t
 ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
 {
@@ -258,6 +259,12 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
     ngx_hash_elt_t  *elt, **buckets;
 
     for (n = 0; n < nelts; n++) {
+		/*
+		判断一个bucket是否至少能存放一个实际元素以及结束哨兵:
+		NGX_HASH_ELT_SIZE(&names[n])是该实际元素names[n]所需的内存空间(有对齐处理)
+		sizeof(void*)是结束哨兵所需内存空间，hinit->bucket_size记录了一个bucket的
+		内存空间大小
+		*/
         if (hinit->bucket_size < NGX_HASH_ELT_SIZE(&names[n]) + sizeof(void *))
         {
             ngx_log_error(NGX_LOG_EMERG, hinit->pool->log, 0,
@@ -267,21 +274,36 @@ ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names, ngx_uint_t nelts)
             return NGX_ERROR;
         }
     }
-
+	//测试针对当前传入的所有实际元素，测试分配多少个Hash节点(即bucket)会比较好
+	//(既能省内存，又能少冲突)
     test = ngx_alloc(hinit->max_size * sizeof(u_short), hinit->pool->log);
     if (test == NULL) {
         return NGX_ERROR;
     }
 
+	//计算一个bucket除去结束哨兵所占空间后的实际可用空间大小
     bucket_size = hinit->bucket_size - sizeof(void *);
 
+	/*
+		计算所需bucket的最小个数：
+		存储一个实际元素所需的内存空间的最小及即为(2 * sizeof(void *))(即宏NGX_HASH_ELT_SIZE的对齐处理),一个bucket可以存储的最大实际元素个数为
+		(bucket_size / (2 * sizeof(void *)))，然后总实际元素个数nelts除以这个值也就是
+		最少所需要的bucket个数。
+	*/
     start = nelts / (bucket_size / (2 * sizeof(void *)));
     start = start ? start : 1;
 
+	//以下为一种特殊情况，是一种经验值，若if条件成立，意味着实际元素个数非常多，
+	//那么有必要直接把start其实质调高，否则在后面的循环里要执行过多的无用测试。
     if (hinit->max_size > 10000 && nelts && hinit->max_size / nelts < 100) {
         start = hinit->max_size - 1000;
     }
 
+	/*
+		获取Hash结构最终节点数目：
+		逐步增加Hash节点数目(则对应的bucket数目同步增加)，然后把所有的实际元素往这些
+	bucket里添放，此时有可能发生冲突，但
+	*/
     for (size = start; size <= hinit->max_size; size++) {
 
         ngx_memzero(test, size * sizeof(u_short));
