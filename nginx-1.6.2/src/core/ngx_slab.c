@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -68,7 +68,7 @@ static ngx_uint_t  ngx_slab_max_size;
 static ngx_uint_t  ngx_slab_exact_size;
 static ngx_uint_t  ngx_slab_exact_shift;
 
-
+//slab初始化函数
 void
 ngx_slab_init(ngx_slab_pool_t *pool)
 {
@@ -124,6 +124,7 @@ ngx_slab_init(ngx_slab_pool_t *pool)
                                  ngx_pagesize);
 
     m = pages - (pool->end - pool->start) / ngx_pagesize;
+	//如果m的值大于0，说明对齐等操作导致实际可用内存页数减少，所以需进行调整
     if (m > 0) {
         pages -= m;
         pool->pages->slab = pages;
