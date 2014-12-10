@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -85,7 +85,12 @@ void *ngx_pcalloc(ngx_pool_t *pool, size_t size);
 void *ngx_pmemalign(ngx_pool_t *pool, size_t size, size_t alignment);
 ngx_int_t ngx_pfree(ngx_pool_t *pool, void *p);
 
-
+/*
+	以下为由于对内存其他资源的关联管理的一套函数接口。即从内存池里申请一块内存时，
+	可能外部会附带一些其他资源(如打开的文件)，这些资源的使用和申请的内存是绑定在一起
+	的，那么在进行资源释放时，就希望这些资源的释放能放置在和内存池释放时一起进行(通过
+	hander()回调函数)，既能避免无意的资源泄露，又免除单独执行资源释放的麻烦。
+*/
 ngx_pool_cleanup_t *ngx_pool_cleanup_add(ngx_pool_t *p, size_t size);
 void ngx_pool_run_cleanup_file(ngx_pool_t *p, ngx_fd_t fd);
 void ngx_pool_cleanup_file(void *data);

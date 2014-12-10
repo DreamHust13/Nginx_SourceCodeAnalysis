@@ -1,4 +1,4 @@
-
+﻿
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -225,7 +225,8 @@ void ngx_sort(void *base, size_t n, size_t size,
     ngx_int_t (*cmp)(const void *, const void *));
 #define ngx_qsort             qsort
 
-
+//##是一个连接符号，用于把参数连在一起   
+//#是“字符串化”的意思。出现在宏定义中的#是把跟在后面的参数转换成一个字符串
 #define ngx_value_helper(n)   #n
 #define ngx_value(n)          ngx_value_helper(n)
 
