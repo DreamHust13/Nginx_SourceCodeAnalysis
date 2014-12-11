@@ -116,12 +116,25 @@ ngx_radix_tree_create(ngx_pool_t *pool, ngx_int_t preallocate)
     mask = 0;
     inc = 0x80000000;
 
+	/*
+		当第二次进入while(preallocate--){}循环(假设此时为真，即预创建的树深度超过1)后，
+	mask值等于0xC0000000，对应2层节点。在内部do(...)while(key)循环内，key值依次是
+	0x0、ox40000000、0x80000000、0xC0000000、0x0(因为溢出而得到该值)，前面4次分别
+	创建c、d、e、f4个节点，第5次循环退出。
+		其他层次节点的创建情况与上类似。
+	*/
     while (preallocate--) {
 
         key = 0;
         mask >>= 1;
+		//初始mask值(第一次循环时)，即最高位为1，对应1层节点(根节点对应第0层)
         mask |= 0x80000000;
 
+		/*循环用于创建这一层的所有节点
+			如：在第1层时，key首先为0，创建的左节点a，当key+=inc后，即key等于0x80000000，
+		此时创建的是右节点b。再执行key+=inc后，由于溢出导致key为0，从而do(...)while(key)
+		循环退出。
+		*/
         do {
             if (ngx_radix32tree_insert(tree, key, mask, NGX_RADIX_NO_VALUE)
                 != NGX_OK)
@@ -139,6 +152,12 @@ ngx_radix_tree_create(ngx_pool_t *pool, ngx_int_t preallocate)
     return tree;
 }
 
+/*
+	注意：基树并不要求是满二叉树，仅仅只是在函数ngx_radix_tree_create()里设定创建
+		为满二叉树，但是在其他地方调用函数ngx_radix32tree_insert()进行节点插入时，
+		是哪个位置的树节点就从根开始创建到哪个位置，并不会让这颗基树时时刻刻都保持为
+		满二叉树。
+*/
 
 ngx_int_t
 ngx_radix32tree_insert(ngx_radix_tree_t *tree, uint32_t key, uint32_t mask,
@@ -268,6 +287,7 @@ ngx_radix32tree_delete(ngx_radix_tree_t *tree, uint32_t key, uint32_t mask)
 }
 
 
+//不需要mask参数的原因：它是最长匹配，而且利用key值一直往下匹配时，遇到空节点会自然停止。
 uintptr_t
 ngx_radix32tree_find(ngx_radix_tree_t *tree, uint32_t key)
 {
