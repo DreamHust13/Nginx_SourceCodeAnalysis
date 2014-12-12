@@ -19,18 +19,18 @@
  *    TT        command type, i.e. HTTP "location" or "server" command
  */
 
-#define NGX_CONF_NOARGS      0x00000001
-#define NGX_CONF_TAKE1       0x00000002
-#define NGX_CONF_TAKE2       0x00000004
-#define NGX_CONF_TAKE3       0x00000008
-#define NGX_CONF_TAKE4       0x00000010
-#define NGX_CONF_TAKE5       0x00000020
-#define NGX_CONF_TAKE6       0x00000040
-#define NGX_CONF_TAKE7       0x00000080
+#define NGX_CONF_NOARGS      0x00000001		//表示该配置项的配置值没有
+#define NGX_CONF_TAKE1       0x00000002		//				   一个
+#define NGX_CONF_TAKE2       0x00000004		//				   2个
+#define NGX_CONF_TAKE3       0x00000008		//				   3个
+#define NGX_CONF_TAKE4       0x00000010		//				   4个
+#define NGX_CONF_TAKE5       0x00000020		//				   5个
+#define NGX_CONF_TAKE6       0x00000040		//				   6个
+#define NGX_CONF_TAKE7       0x00000080		//				   7个
 
 #define NGX_CONF_MAX_ARGS    8
 
-#define NGX_CONF_TAKE12      (NGX_CONF_TAKE1|NGX_CONF_TAKE2)
+#define NGX_CONF_TAKE12      (NGX_CONF_TAKE1|NGX_CONF_TAKE2)	//表示该配置项的配置值个数不定：1或2
 #define NGX_CONF_TAKE13      (NGX_CONF_TAKE1|NGX_CONF_TAKE3)
 
 #define NGX_CONF_TAKE23      (NGX_CONF_TAKE2|NGX_CONF_TAKE3)
@@ -40,8 +40,8 @@
                               |NGX_CONF_TAKE4)
 
 #define NGX_CONF_ARGS_NUMBER 0x000000ff
-#define NGX_CONF_BLOCK       0x00000100
-#define NGX_CONF_FLAG        0x00000200
+#define NGX_CONF_BLOCK       0x00000100		//表示该配置项目为复杂配置项(即有一个由大括号组织起来的多值块)
+#define NGX_CONF_FLAG        0x00000200		//表示该配置项目有一个布尔类型的值
 #define NGX_CONF_ANY         0x00000400
 #define NGX_CONF_1MORE       0x00000800
 #define NGX_CONF_2MORE       0x00001000
@@ -49,7 +49,7 @@
 
 #define NGX_DIRECT_CONF      0x00010000
 
-#define NGX_MAIN_CONF        0x01000000
+#define NGX_MAIN_CONF        0x01000000		//该配置项目可处在的上下文：配置文件最外层，不向内延伸
 #define NGX_ANY_CONF         0x0F000000
 
 
@@ -75,17 +75,21 @@
 #define NGX_MAX_CONF_ERRSTR  1024
 
 
+//为统一配置项目的解析，Nginx利用ngx_commands_s数据类型对所有的Nginx配置项进行统一的描述。
 struct ngx_command_s {
-    ngx_str_t             name;
-    ngx_uint_t            type;
-    char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-    ngx_uint_t            conf;
-    ngx_uint_t            offset;
-    void                 *post;
+    ngx_str_t             name;			//指定与其对应的配置项目的名称
+    ngx_uint_t            type;			//指定该配置项的多种相关信息
+    char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);	
+										//指向配置指令处理回调函数
+    ngx_uint_t            conf;			//主要由NGX_HTTP_MODULE类型模块所使用，其指定当前配置项所做的大致位置
+    ngx_uint_t            offset;		//指定转换后控制值的存放位置，指定该配置项值的精确存放位置，一般指定为
+										//某一个结构体变量的字段偏移(利用offsetof宏)，对复杂配置项目，指定为0即可
+    void                 *post;			//大多数情况为NULL，某些特殊配置项会指定，且多为回调函数指针
 };
 
 #define ngx_null_command  { ngx_null_string, 0, NULL, 0, 0, NULL }
-
+//每个模块都把自己所需要的配置项目的对应ngx_command_s结构体变量组成一个数组，并以ngx_xxx_xxx_commands的形式命名，
+//该数组以元素ngx_null_command作为结束哨兵。
 
 struct ngx_open_file_s {
     ngx_fd_t              fd;

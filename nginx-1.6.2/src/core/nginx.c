@@ -1,4 +1,4 @@
-﻿
+
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -32,8 +32,16 @@ static ngx_conf_enum_t  ngx_debug_points[] = {
 };
 
 
+//对于配置项daemon，在模块ngx_core_module的配置项目解析数组内的第一个元素就是保存的对该
+//配置项进行解析所需要的信息
 static ngx_command_t  ngx_core_commands[] = {
 
+	/*
+		根据ngx_command_t结构，解析第一个元素daemon配置项：当遇到配置文件里的daemon项目名时，
+		Nginx就调用ngx_conf_set_flag_slot()回调函数对其项目值进行解析，并根据其是on还是off把
+		ngx_core_conf_t的daemon字段置为1或者0，这样就完成了从配置项目信息到Nginx内部实际值的
+		转换。
+	*/
     { ngx_string("daemon"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -166,6 +174,7 @@ static ngx_core_module_t  ngx_core_module_ctx = {
     ngx_core_module_create_conf,
     ngx_core_module_init_conf
 };
+
 
 
 ngx_module_t  ngx_core_module = {
