@@ -96,9 +96,21 @@ ngx_conf_param(ngx_conf_t *cf)
     return rv;
 }
 
-
+/*
+	Nginx启动流程中与配置信息相关的函数调用：
+		main()->ngx_init_cycle()->ngx_conf_parse()
+		ngx_conf_parse()为执行配置文件解析的关键函数，是一个间接递归函数。
+		(一般在处理复杂配置项和一些特殊配置指令时，会执行一些其他函数(如ngx_conf_handler())内又会调用ngx_conf_parse()函数形成递归)
+		
+		解析过程三步走：
+		1.判断当前解析状态
+		2.读取配置标记token
+		3.当读取了合适数量的标记token后对其进行实际的处理，即将配置值转换为Nginx内对应控制变量的值。
+*/
 char *
 ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
+//参数cf:
+//参数filename：保存的配置文件路径的字符串
 {
     char             *rv;
     ngx_fd_t          fd;
@@ -117,7 +129,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 #endif
 
     if (filename) {
-
+	//参数filename：保存的配置文件路径的字符串
         /* open configuration file */
 
         fd = ngx_open_file(filename->data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
@@ -427,6 +439,7 @@ invalid:
 }
 
 
+//循环从配置文件里读取token
 static ngx_int_t
 ngx_conf_read_token(ngx_conf_t *cf)
 {

@@ -1,4 +1,4 @@
-﻿
+
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -63,6 +63,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     tp->sec = 0;
 
     ngx_time_update();
+
 
 
     log = old_cycle->log;
@@ -261,6 +262,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         return NULL;
     }
 
+	//ngx_conf_parse()为执行配置文件解析的关键函数，是一个间接递归函数。
     if (ngx_conf_parse(&conf, &cycle->conf_file) != NGX_CONF_OK) {
         environ = senv;
         ngx_destroy_cycle_pools(&conf);
