@@ -4585,6 +4585,8 @@ ngx_http_upstream_cache_last_modified(ngx_http_request_t *r,
 #endif
 
 
+//upstream配置指令的回调处理函数ngx_http_upstream():
+//该函数除了申请内存、设置初始值等之外，最主要的动作就是切换配置上下文并调用ngx_conf_parse()函数继续进行配置解析。
 static char *
 ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 {
@@ -4694,6 +4696,9 @@ ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 }
 
 
+//进入upstream配置块，最主要的配置指令就是server，对应处理函数为ngx_http_upstream_server()
+//对于每一个后端真实服务器，除其uri地址外，还有诸如down、weight、max_fails、fail_timeout、backup这样的可选参数
+//所有这些都需要ngx_http_upstream_server()函数来处理。
 static char *
 ngx_http_upstream_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {

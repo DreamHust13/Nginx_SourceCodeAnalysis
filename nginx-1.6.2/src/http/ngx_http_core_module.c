@@ -1098,27 +1098,36 @@ ngx_http_core_post_rewrite_phase(ngx_http_request_t *r,
 }
 
 
+//NGX_HTTP_ACCESS_PHASE阶段的ngx_http_core_access_phase()函数
 ngx_int_t
 ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
     ngx_int_t                  rc;
     ngx_http_core_loc_conf_t  *clcf;
 
+	//回调函数准入判断，如果当前不是主请求，则无需进行访问权限检测
     if (r != r->main) {
-        r->phase_handler = ph->next;
+        r->phase_handler = ph->next;	//让状态机直接进入到下一个处理阶段
         return NGX_AGAIN;
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "access phase: %ui", r->phase_handler);
 
-    rc = ph->handler(r);
+    rc = ph->handler(r);	//进行回调处理，即执行功能模块的功能函数
 
+	//判断成功表示:当前回调拒绝处理或者说是不符合它的处理条件
     if (rc == NGX_DECLINED) {
-        r->phase_handler++;
+        r->phase_handler++;		//将处理移到下一回调函数
         return NGX_AGAIN;
     }
 
+	/*
+	  判断成功表示:当前回调需要再次调用或已经成功处理，但与前两次返回不同:
+		首先，并没有进行自增phase_handler变量，
+		其次，返回NGX_OK导致ngx_core_run_phases()函数里的循环处理会退出，表示状态机的继续处理需要等待更进一步的
+	事件发生，这可以是子请求结束、socket描述符变得可写、超时发生等，并且再进入到状态机处理函数时，扔将从当前回调开始。
+	*/
     if (rc == NGX_AGAIN || rc == NGX_DONE) {
         return NGX_OK;
     }

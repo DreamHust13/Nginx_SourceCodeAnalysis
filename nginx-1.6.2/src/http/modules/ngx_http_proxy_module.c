@@ -3125,6 +3125,7 @@ ngx_http_proxy_merge_headers(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *conf,
 }
 
 
+//配置指令proxy_pass主要出现在location配置上下文中，其对应函数为ngx_http_proxy_pass()
 static char *
 ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -3144,6 +3145,7 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
 
+	//给当前location的http处理设置回调函数
     clcf->handler = ngx_http_proxy_handler;
 
     if (clcf->name.data[clcf->name.len - 1] == '/') {
@@ -3209,6 +3211,7 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     u.uri_part = 1;
     u.no_resolve = 1;
 
+	//查找(没有找到则会创建，如配置文件中upstream指令出现在proxy_pass指令后面)其对应的upstream配置
     plcf->upstream.upstream = ngx_http_upstream_add(cf, &u, 0);
     if (plcf->upstream.upstream == NULL) {
         return NGX_CONF_ERROR;
