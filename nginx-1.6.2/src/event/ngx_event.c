@@ -42,7 +42,7 @@ sig_atomic_t          ngx_event_timer_alarm;
 static ngx_uint_t     ngx_event_max_module;
 
 ngx_uint_t            ngx_event_flags;
-ngx_event_actions_t   ngx_event_actions;
+ngx_event_actions_t   ngx_event_actions;	//为方便使用任何一种事件处理机制定义的全局变量
 
 
 static ngx_atomic_t   connection_counter = 1;
@@ -1011,6 +1011,7 @@ ngx_event_connections(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
+//设定Nginx使用哪个事件处理机制是通过在event块里使用use指令来指定的。该配置指令对应的处理函数为ngx_event_use()
 static char *
 ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1043,6 +1044,9 @@ ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         module = ngx_modules[m]->ctx;
         if (module->name->len == value[1].len) {
             if (ngx_strcmp(module->name->data, value[1].data) == 0) {
+				//经相关验证(如重复指定、对应的事件处理模块是否存在等)后，就会把对应的事件处理模块序号记录在
+				//配置变量ecf->use内。如果不进行主动指定，那么Nginx会根据当前系统平台选择一个合适的事件处理模块，
+				//并且同样把其模块序号记录在配置变量ecf->use内，相关逻辑实现在函数ngx_event_core_init_conf()内。
                 ecf->use = ngx_modules[m]->ctx_index;
                 ecf->name = module->name->data;
 
