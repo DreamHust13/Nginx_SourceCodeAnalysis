@@ -1,4 +1,4 @@
-﻿
+
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -749,6 +749,8 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 
     ngx_process = NGX_PROCESS_WORKER;
 
+	//工作进程初始化函数ngx_worker_process_init，其内会调用事件核心模块的初始化函数ngx_event_process_init()，
+	//而在该函数内，根据配置变量ecf->use记录的值，进而调用到对应事件处理模块的初始化函数。
     ngx_worker_process_init(cycle, worker);
 
     ngx_setproctitle("worker process");
