@@ -1,4 +1,4 @@
-﻿
+
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -370,7 +370,7 @@ ngx_pfree(ngx_pool_t *pool, void *p)
 }
 
 
-//ngx_pcalloc()是在ngx_palloc()上的封装，但它在返回分配的内存之前会对这些内存做清零操作。
+//申请内存空间，ngx_pcalloc()是在ngx_palloc()上的封装，但它在返回分配的内存之前会对这些内存做清零操作。
 void *
 ngx_pcalloc(ngx_pool_t *pool, size_t size)
 {

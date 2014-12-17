@@ -872,6 +872,7 @@ ngx_http_handler(ngx_http_request_t *r)
 }
 
 
+//对http请求进行分阶段处理核心函数：ngx_http_core_run_phases()
 void
 ngx_http_core_run_phases(ngx_http_request_t *r)
 {
@@ -3779,6 +3780,15 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         }
     }
 
+	/*
+		对配置指令error_log的继承：
+			如果当前层次的error_log配置值为空，那么就需要做继承处理：
+				如果上一层次存在error_log配置值，那么就将其值继承下来；
+				否则，直接使用最顶层(即main上下文)的配置值。
+					如果在main上下文配置了error_log指令，那么将在对应的回调处理ngx_error_log(）函数(该函数属于
+					ngx_errlog_module模块)里设置值cf->cycle->new_log；如果在main上下文里也没有配置error_log
+					指令，那么此时将使用默认值(ngx_log_open_default()函数)。
+	*/
     if (conf->error_log == NULL) {
         if (prev->error_log) {
             conf->error_log = prev->error_log;

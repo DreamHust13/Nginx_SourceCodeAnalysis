@@ -949,11 +949,13 @@ ngx_process_options(ngx_cycle_t *cycle)
 }
 
 
+//核心模块ngx_core_module的回调函数
 static void *
 ngx_core_module_create_conf(ngx_cycle_t *cycle)
 {
     ngx_core_conf_t  *ccf;
 
+	//申请内存空间
     ccf = ngx_pcalloc(cycle->pool, sizeof(ngx_core_conf_t));
     if (ccf == NULL) {
         return NULL;
@@ -969,7 +971,9 @@ ngx_core_module_create_conf(ngx_cycle_t *cycle)
      *     ccf->cpu_affinity = NULL;
      */
 
+	//初始内存空间
     ccf->daemon = NGX_CONF_UNSET;
+	//NGX_CONF_UNSET初始赋值，用于判断用户是否有在配置文件里对配置项做过设置
     ccf->master = NGX_CONF_UNSET;
     ccf->timer_resolution = NGX_CONF_UNSET_MSEC;
 
@@ -988,6 +992,7 @@ ngx_core_module_create_conf(ngx_cycle_t *cycle)
     ccf->thread_stack_size = NGX_CONF_UNSET_SIZE;
 #endif
 
+	//返回内存空间的指针引用
     if (ngx_array_init(&ccf->env, cycle->pool, 1, sizeof(ngx_str_t))
         != NGX_OK)
     {
@@ -998,11 +1003,13 @@ ngx_core_module_create_conf(ngx_cycle_t *cycle)
 }
 
 
+//核心模块ngx_core_module的默认值设置函数
 static char *
 ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
 {
     ngx_core_conf_t  *ccf = conf;
 
+	//若没有对daemon做设置，则它的值还是NGX_CONF_UNSET，进而将其设置为default默认值，即1。
     ngx_conf_init_value(ccf->daemon, 1);
     ngx_conf_init_value(ccf->master, 1);
     ngx_conf_init_msec_value(ccf->timer_resolution, 0);

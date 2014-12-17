@@ -151,6 +151,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 
         cf->conf_file->buffer = &buf;
 
+		//申请缓存
         buf.start = ngx_alloc(NGX_CONF_BUFFER, cf->log);
         if (buf.start == NULL) {
             goto failed;
@@ -158,7 +159,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 
         buf.pos = buf.start;
         buf.last = buf.start;
-        buf.end = buf.last + NGX_CONF_BUFFER;
+        buf.end = buf.last + NGX_CONF_BUFFER;//缓存大小4096
         buf.temporary = 1;
 
         cf->conf_file->file.fd = fd;
@@ -168,17 +169,20 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         cf->conf_file->file.log = cf->log;
         cf->conf_file->line = 1;
 
+		//当前解析过程所处状态：正要开始解析一个配置文件
         type = parse_file;
 
     } else if (cf->conf_file->file.fd != NGX_INVALID_FILE) {
 
+		//当前解析过程所处状态：正要开始解析一个复杂配置项值
         type = parse_block;
 
     } else {
+		//当前解析过程所处状态：正要开始解析命令行参数配置项值
         type = parse_param;
     }
 
-
+	//循环从配置文件里读取token
     for ( ;; ) {
         rc = ngx_conf_read_token(cf);
 
@@ -192,10 +196,12 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
          *    NGX_CONF_FILE_DONE    the configuration file is done
          */
 
+		//解析异常，return NGX_CONF_ERROR
         if (rc == NGX_ERROR) {
             goto done;
         }
 
+		//解析正常，return NGX_CONF_OK
         if (rc == NGX_CONF_BLOCK_DONE) {
 
             if (type != parse_block) {
@@ -206,6 +212,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
             goto done;
         }
 
+		//解析正常，return NGX_CONF_OK
         if (rc == NGX_CONF_FILE_DONE) {
 
             if (type == parse_block) {
@@ -217,6 +224,8 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
             goto done;
         }
 
+		//ngx_conf_read_token()返回NGX_OK或NGX_CONF_BLOCK_START，
+		//下一步，调用ngx_conf_handler()进行配置文件值到Nginx内部控制变量的转换；继续下一轮for循环处理
         if (rc == NGX_CONF_BLOCK_START) {
 
             if (type == parse_param) {
@@ -229,6 +238,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 
         /* rc == NGX_OK || rc == NGX_CONF_BLOCK_START */
 
+		//判断回调函数是否存在:该回调函数存在的目的是针对
         if (cf->handler) {
 
             /*
@@ -256,6 +266,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
 
+		//配置转换核心函数ngx_conf_handler()
         rc = ngx_conf_handler(cf, rc);
 
         if (rc == NGX_ERROR) {
@@ -305,6 +316,11 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
     found = 0;
 
+	/*
+		Nginx的每个配置指令都对应一个ngx_command_s数据类型变量，记录该配置指令的解析回调函数、转换值存储位置等，
+	而每一个模块又都把自身所相关的所有指令以数组的形式组织起来。故，ngx_conf_handler()首先查找当前指令所对应的
+	ngx_command_s变量，即循环遍历各个模块的指令数组即可。
+	*/
     for (i = 0; ngx_modules[i]; i++) {
 
         cmd = ngx_modules[i]->commands;
@@ -386,6 +402,8 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             conf = NULL;
 
+			//只有核心模块的配置项才可能是NGX_DIRECT_CONF类型
+			//P99 <剖析>
             if (cmd->type & NGX_DIRECT_CONF) {
                 conf = ((void **) cf->ctx)[ngx_modules[i]->index];
 
@@ -400,6 +418,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                 }
             }
 
+			//已找到配置指令所对应的ngx_command_s变量cmd，开始调用回调函数进行处理
             rv = cmd->set(cf, cmd, conf);
 
             if (rv == NGX_CONF_OK) {
@@ -439,7 +458,14 @@ invalid:
 }
 
 
-//循环从配置文件里读取token
+
+/*
+	ngx_conf_read_token：对配置文件进行逐个字符扫描并解析出单个的token
+		函数不会频繁读取配置文件，它每次将从文件内读取足够多的内容以填满一个大小为NGX_CONF_BUFFER(4096)的缓存区(除最后
+	一次，即配置文件内容本来就不够),这个缓存区在函数ngx_conf_parse()内申请并保存引用到变量cf->conf_file->buffer内,
+	函数ngx_conf_read_token()反复使用该缓存区，该缓存区会有不同的状态。
+
+*/
 static ngx_int_t
 ngx_conf_read_token(ngx_conf_t *cf)
 {
@@ -461,6 +487,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
     s_quoted = 0;
     d_quoted = 0;
 
+	//一条简单配置项的所有标记被读取并存放在cf->args数组内
     cf->args->nelts = 0;
     b = cf->conf_file->buffer;
     start = b->pos;
@@ -1090,6 +1117,8 @@ ngx_conf_set_keyval_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
+//比较公共的配置项处理函数(数字的配置项目都可用其进行转换)
+//先找到转换后值的存储位置，然后利用ngx_atoi()函数将字符串的数字转换为整型数字，存储到对应的位置
 char *
 ngx_conf_set_num_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {

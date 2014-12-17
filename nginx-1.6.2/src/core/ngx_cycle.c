@@ -182,6 +182,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_queue_init(&cycle->reusable_connections_queue);
 
 
+	//申请存储模块配置信息的内存空间，一个指针数组，数组元素个数为ngx_max_module，刚好一个指针元素对应一个模块
     cycle->conf_ctx = ngx_pcalloc(pool, ngx_max_module * sizeof(void *));
     if (cycle->conf_ctx == NULL) {
         ngx_destroy_pool(pool);
@@ -210,18 +211,23 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
 
     for (i = 0; ngx_modules[i]; i++) {
+		//调用核心模块的create_conf()函数，创建实际的配置信息存储空间。
+		//(之所以先只处理核心模块是因为核心模块才是基本模块，其配置空间必须首先创建，以便作为其他非核心模块的支撑)
         if (ngx_modules[i]->type != NGX_CORE_MODULE) {
             continue;
         }
 
         module = ngx_modules[i]->ctx;
 
+		//并不是所有的核心模块都有create_conf()函数(依赖于具体的配置文件)
         if (module->create_conf) {
             rv = module->create_conf(cycle);
             if (rv == NULL) {
                 ngx_destroy_pool(pool);
                 return NULL;
             }
+			//若rv = module->create_conf(cycle);存储空间创建成功，
+			//将其复制给对应的指针元素，指针指向对应模块配置信息的具体存储位置
             cycle->conf_ctx[ngx_modules[i]->index] = rv;
         }
     }
@@ -245,6 +251,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
 
+	//cycle->conf_ctx是唯一能正确找到配置存储空间的指针，所以需要conf.ctx作为临时变量
     conf.ctx = cycle->conf_ctx;
     conf.cycle = cycle;
     conf.pool = pool;
@@ -282,6 +289,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         module = ngx_modules[i]->ctx;
 
         if (module->init_conf) {
+			//设置默认值的处理在模块的回调函数init_conf()内，在配置文件解析完
             if (module->init_conf(cycle, cycle->conf_ctx[ngx_modules[i]->index])
                 == NGX_CONF_ERROR)
             {

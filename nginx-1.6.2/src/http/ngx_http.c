@@ -1,4 +1,4 @@
-﻿
+
 /*
  * Copyright (C) Igor Sysoev
  * Copyright (C) Nginx, Inc.
@@ -267,6 +267,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             }
         }
 
+		//实际做继承处理的代码在ngx_http_merge_servers()函数
         rv = ngx_http_merge_servers(cf, cmcf, module, mi);
         if (rv != NGX_CONF_OK) {
             goto failed;
@@ -442,7 +443,12 @@ ngx_http_init_headers_in_hash(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
     return NGX_OK;
 }
 
-
+/*
+	ngx_http_init_phase_handlers():
+		对所有回调函数进行重组:只把有回调函数的处理阶段提取出来，同时利用ngx_http_phase_handler_t结构体数组
+	对这些函数进行重组，不仅加上了进入回调函数的条件判断checker函数，而且通过next字段的使用，把原本的二维数组
+	实现转化为可直接在一维函数数组内部跳动。
+*/
 static ngx_int_t
 ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 {
@@ -558,7 +564,13 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
     return NGX_OK;
 }
 
-
+/*
+	实际做继承处理的函数：ngx_http_merge_servers()
+		循环处理http下的所有server，而对每一个server，除了做server层次的配置项继承处理外(即从上一层次http继承配置值
+	到当前层次server内)，还会通过函数ngx_http_merge_locations()循环处理其下的每一个location(即从上一层次server继承
+	配置值到当前location内)，而在处理完每一个location后又递归调用函数ngx_http_merge_locations()继续处理当前location
+	下的每一个location(即从上一层次location继承配置值到当前location内)。
+*/
 static char *
 ngx_http_merge_servers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf,
     ngx_http_module_t *module, ngx_uint_t ctx_index)
